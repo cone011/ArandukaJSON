@@ -1,0 +1,31 @@
+Clase Padre TipoAsiento :
+	*) idTipoAsiento
+	*) CodigoTipoAsiento
+	*) DescripcionTipoAsiento
+	*) FechaCreacion
+	*) UsuarioCreacion
+	*) FechaModificacion
+	*) UsuarioModificacion
+	
+
+Clase Padre AsientoContable :
+	*) idAsientoContable
+	*) idCliente
+	*) DescripcionCliente
+	*) idTipoCliente
+	*) idTipoAsiento
+	*) ObservacionAsientoContable
+	*) FechaAsientoContable
+	*) MesAsientoContable
+	*) idTipoMoneda
+	*) FechaCreacion
+	*) UsuarioCreacion
+	*) FechaModificacion
+	*) UsuarioModificacion
+	*) DetalleAsientoContable(OBJETO)
+	
+Clase Padre DetalleAsientoContable :
+	*) idDetalleAsientoContable
+	*) idAsientoContable
+	*) 
+	
