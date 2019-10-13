@@ -1,0 +1,146 @@
+Public Class xucClientes
+
+
+    Public Property listaClientes As List(Of Clientes)
+
+    Public Property ClienteSeleccionado As Clientes
+
+    Public Property KeepSelectedItemVisible As Boolean = True
+
+    Public Property EnableSearch As Boolean = True
+
+    Public Event ClientesGotFocus()
+    Public Event ClientesLostFocus()
+    Public Event ClientesSeleccionadoEvent()
+
+    Private EnterPressed As Boolean = False
+
+
+    Private Sub PopupContainerEdit1_ButtonClick(sender As Object, e As DevExpress.XtraEditors.Controls.ButtonPressedEventArgs) Handles PopupContainerEdit1.ButtonClick
+        Try
+            Me.PopupContainerEdit1.EditValue = Nothing
+            Me.ClienteSeleccionado = Nothing
+            Me.ClientesBindingSource.Clear()
+            RaiseEvent ClientesSeleccionadoEvent()
+        Catch ex As Exception
+        End Try
+    End Sub
+
+    Private Sub PopupContainerEdit1_EditValueChanged(sender As Object, e As EventArgs) Handles PopupContainerEdit1.EditValueChanged
+
+    End Sub
+
+    Private Sub PopupContainerEdit1_GotFocus(sender As Object, e As EventArgs) Handles PopupContainerEdit1.GotFocus
+        RaiseEvent ClientesGotFocus()
+    End Sub
+
+    Private Sub PopupContainerEdit1_LostFocus(sender As Object, e As EventArgs) Handles PopupContainerEdit1.LostFocus
+        RaiseEvent ClientesLostFocus()
+    End Sub
+
+    Private Sub PopupContainerEdit1_KeyDown(sender As Object, e As KeyEventArgs) Handles PopupContainerEdit1.KeyDown
+        Try
+            Select Case e.KeyCode
+                Case Keys.Down
+                    e.Handled = True
+                    If ClientesBindingSource.Count > 0 Then
+                        Me.GridView1.Focus()
+                        Me.GridView1.FocusedRowHandle = 0
+                    End If
+                Case Keys.Enter
+                    Try
+                        e.Handled = True
+                        EnterPressed = True
+                        If PopupContainerEdit1.Text.ToString.Length >= 3 Then
+                            If Not BackgroundWorker1.IsBusy Then
+                                BackgroundWorker1.RunWorkerAsync()
+                            Else
+                                While BackgroundWorker1.IsBusy
+                                    BackgroundWorker1.CancelAsync()
+                                End While
+                                BackgroundWorker1.RunWorkerAsync()
+                            End If
+                        Else
+                            Me.PopupContainerEdit1.ClosePopup()
+                        End If
+                    Catch ex As Exception
+                    End Try
+            End Select
+        Catch ex As Exception
+        End Try
+    End Sub
+
+    Private Sub BackgroundWorker1_DoWork(sender As Object, e As System.ComponentModel.DoWorkEventArgs) Handles BackgroundWorker1.DoWork
+        Try
+            If EnableSearch Then
+                listaClientes = New ClientesDAO().getAllBusquedaClientes(PopupContainerEdit1.Text)
+            End If
+        Catch ex As Exception
+            MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Exclamation)
+        End Try
+    End Sub
+
+    Private Sub BackgroundWorker1_RunWorkerCompleted(sender As Object, e As System.ComponentModel.RunWorkerCompletedEventArgs) Handles BackgroundWorker1.RunWorkerCompleted
+        Try
+            Me.ClientesBindingSource.DataSource = listaClientes
+            If ClientesBindingSource.Count = 1 Then
+                If EnterPressed AndAlso listaClientes(0).ApellidoNombre = PopupContainerEdit1.EditValue Then
+                    Me.GridView1.FocusedRowHandle = 0
+                    Me.ClienteSeleccionado = CType(ClientesBindingSource.Current, Clientes)
+                    If Not KeepSelectedItemVisible Then
+                        Me.PopupContainerEdit1.EditValue = Nothing
+                    Else
+                        EnableSearch = True
+                        Me.PopupContainerEdit1.EditValue = Me.ClienteSeleccionado.ApellidoNombre
+                    End If
+                    Me.PopupContainerEdit1.ClosePopup()
+                    RaiseEvent ClientesSeleccionadoEvent()
+                    Application.DoEvents()
+                    EnableSearch = True
+                Else
+                    If Not PopupContainerEdit1.IsPopupOpen Then
+                        Me.PopupContainerEdit1.ShowPopup()
+                    End If
+                    Me.GridView1.BestFitColumns()
+                    Me.PopupContainerEdit1.Focus()
+                End If
+            ElseIf ClientesBindingSource.Count > 1 Then
+                If Not PopupContainerEdit1.IsPopupOpen Then
+                    Me.PopupContainerEdit1.ShowPopup()
+                End If
+                Me.GridView1.BestFitColumns()
+                Me.PopupContainerEdit1.Focus()
+            End If
+            EnterPressed = True
+        Catch ex As Exception
+        End Try
+    End Sub
+
+    Private Sub GridView1_KeyDown(sender As Object, e As KeyEventArgs) Handles GridView1.KeyDown
+        Try
+            Select Case e.KeyCode
+                Case Keys.Enter
+                    e.Handled = True
+                    Try
+                        Me.ClienteSeleccionado = CType(ClientesBindingSource.Current, Clientes)
+                        If Not KeepSelectedItemVisible Then
+                            Me.PopupContainerEdit1.Text = Nothing
+                        Else
+                            EnableSearch = True
+                            Me.PopupContainerEdit1.Text = Me.ClienteSeleccionado.ApellidoNombre
+                        End If
+
+                        RaiseEvent ClientesSeleccionadoEvent()
+                        Application.DoEvents()
+                        EnableSearch = True
+                        Me.PopupContainerEdit1.ClosePopup()
+                        PopupContainerEdit1.SelectAll()
+                        Application.DoEvents()
+                    Catch ex As Exception
+                    End Try
+            End Select
+        Catch ex As Exception
+        End Try
+    End Sub
+
+End Class
