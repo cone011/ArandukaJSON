@@ -1,0 +1,116 @@
+Imports System.IO
+Imports System.Xml
+Imports System.Xml.Serialization
+Imports System.Data.OleDb
+Imports System.Text
+Imports ExcelDataReader
+Imports Newtonsoft.Json
+
+Public Class frmGridAranduka
+
+    Public Property listaAranduka As List(Of ClasesSistemaContable.Aranduka) = New List(Of ClasesSistemaContable.Aranduka)
+
+    Dim tables As DataTableCollection
+
+    Dim Tablename As String = String.Empty
+
+    Private Sub btnExportarExcel_ItemClick(sender As Object, e As DevExpress.XtraBars.ItemClickEventArgs) Handles btnExportarExcel.ItemClick
+
+        Try
+            Using ofd As OpenFileDialog = New OpenFileDialog() With {.Filter = "All Files (*.*)|*.*.|Excel Files (*.xlsx)|*.xlsx|Xls Files (.xls)|*.xls"}
+                If ofd.ShowDialog() = DialogResult.OK Then
+                    Dim NombreArchivo = ofd.FileName
+                    Using Stream = File.Open(ofd.FileName, FileMode.Open, FileAccess.Read)
+                        Using reader As IExcelDataReader = ExcelReaderFactory.CreateReader(Stream)
+                            Dim result As DataSet = reader.AsDataSet(New ExcelDataSetConfiguration() With {
+                                                                                                         .ConfigureDataTable = Function(__) New ExcelDataTableConfiguration With {.UseHeaderRow = True}
+                                                                                                    })
+                            tables = result.Tables
+                            For Each table As DataTable In tables
+                                Tablename = table.TableName
+                            Next
+                        End Using
+                    End Using
+                End If
+            End Using
+
+            Dim dt As DataTable = tables(Tablename)
+
+            GridControl1.DataSource = dt
+
+        Catch ex As Exception
+            MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+
+    End Sub
+
+    Private Sub btnExportarXML_ItemClick(sender As Object, e As DevExpress.XtraBars.ItemClickEventArgs) Handles btnExportarXML.ItemClick
+        Dim ds As DataTable = GridControl1.DataSource
+        Try
+            Dim saveFileDialog1 As SaveFileDialog = New SaveFileDialog()
+            saveFileDialog1.Filter = "XML|*.xml"
+            saveFileDialog1.Title = "Guardar Archivo"
+            Dim resultado = saveFileDialog1.ShowDialog(Me)
+            If resultado = System.Windows.Forms.DialogResult.OK Then
+                ''Guarda el camino donde va a ser creado el archivo txt
+                Dim filepath As String = saveFileDialog1.FileName
+                If Not System.IO.File.Exists(filepath) Then
+                    System.IO.File.Create(filepath).Dispose()
+                End If
+                Dim file As New System.IO.StreamWriter(filepath)
+
+                ds.WriteXml(filepath)
+
+                file.Close()
+            End If
+        Catch ex As Exception
+            MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
+
+    Private Sub btnExportarJSON_ItemClick(sender As Object, e As DevExpress.XtraBars.ItemClickEventArgs) Handles btnExportarJSON.ItemClick
+        Dim SaveFileDialog As New SaveFileDialog
+        Try
+
+            '´Dim listaJSON As List(Of ClasesSistemaContable.JSONaranduka) = ClasesSistemaContable.SingletonDAO.ArandukaDAO.FormateoExcelJSON(listaAranduka)
+
+            Dim ds As DataTable = GridControl1.DataSource
+
+            Dim saveFileDialog1 As SaveFileDialog = New SaveFileDialog()
+            saveFileDialog1.Filter = "JSON|*.json"
+            saveFileDialog1.Title = "Guardar Archivo"
+            Dim resultado = saveFileDialog1.ShowDialog(Me)
+            If resultado = System.Windows.Forms.DialogResult.OK Then
+                ''Guarda el camino donde va a ser creado el archivo txt
+                Dim filepath As String = saveFileDialog1.FileName
+                If Not System.IO.File.Exists(filepath) Then
+                    System.IO.File.Create(filepath).Dispose()
+                End If
+
+                Dim file As New System.IO.StreamWriter(filepath, True)
+
+                'For Each row As DataRow In ds.Rows
+                '    'Dim JSONString As String = String.Empty
+                '    'JSONString = JsonConvert.SerializeObject(ds)
+                '    file.WriteLine(ds)
+
+                'Next
+
+                file.WriteLine(DataTableToJSONWithJSONNet(ds))
+
+                file.Close()
+
+
+            End If
+        Catch ex As Exception
+            MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK)
+        End Try
+    End Sub
+
+    Public Function DataTableToJSONWithJSONNet(ByVal table As DataTable) As String
+        Dim JSONString As String = String.Empty
+        JSONString = JsonConvert.SerializeObject(table)
+        Return JSONString
+    End Function
+
+End Class
