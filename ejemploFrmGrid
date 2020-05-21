@@ -1,0 +1,138 @@
+Imports DevExpress.XtraPrinting
+
+Public Class frmGridAutoFacturaEgreso
+
+    Private Property anulado As Boolean = False
+
+    Private Property verificado As Boolean = False
+
+    Public Sub New()
+
+        ' Esta llamada es exigida por el diseñador.
+        InitializeComponent()
+
+        ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
+        Try
+            My.Settings.idContribuyente = 1
+            My.Settings.Save()
+            EgresoBindingSource.DataSource = ClasesSistemaContable.SingletonDAO.EgresoDAO.getAllVariosEgresos(My.Settings.idContribuyente)
+        Catch ex As Exception
+            MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+
+    End Sub
+
+    Public Sub Nuevo()
+        Try
+            Using frm As frmEgreso = New frmEgreso(ClasesSistemaContable.Constantes.TipoFormaCargaEgreso.AUTOFACTURA_EGRESO)
+                frm.ShowDialog()
+                If frm.isSave Then
+                    EgresoBindingSource.Add(frm.objetoEgreso)
+                    EgresoBindingSource.ResetBindings(False)
+                End If
+            End Using
+        Catch ex As Exception
+            MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK)
+        End Try
+    End Sub
+
+    Public Sub Modificar()
+        Try
+            If GridView1.RowCount < 0 Then
+                Exit Sub
+            End If
+
+            Dim item As ClasesSistemaContable.Egreso = CType(EgresoBindingSource.Current, ClasesSistemaContable.Egreso)
+
+            If item IsNot Nothing Then
+                Dim frm As frmEgreso = New frmEgreso(ClasesSistemaContable.Constantes.TipoFormaCargaEgreso.AUTOFACTURA_EGRESO, item)
+                frm.Text = "# : " + CType(item.idEgreso, String)
+                frm.ShowDialog()
+
+                If frm.isSave Then
+                    EgresoBindingSource.ResetBindings(False)
+                End If
+
+            Else
+                Exit Sub
+            End If
+        Catch ex As Exception
+            MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
+
+    Private Sub btnNuevo_ItemClick(sender As Object, e As DevExpress.XtraBars.ItemClickEventArgs) Handles btnNuevo.ItemClick
+        Try
+            Me.Nuevo()
+        Catch ex As Exception
+            MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
+
+    Private Sub btnModificar_ItemClick(sender As Object, e As DevExpress.XtraBars.ItemClickEventArgs) Handles btnModificar.ItemClick
+        Try
+            Me.Modificar()
+        Catch ex As Exception
+            MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
+
+    Private Sub btnImprimir_ItemClick(sender As Object, e As DevExpress.XtraBars.ItemClickEventArgs) Handles btnImprimir.ItemClick
+        Try
+            Dim link As PrintableComponentLink = ClasesSistemaContable.Conversiones.ImprimirGrid(GridControl1)
+            link.ShowRibbonPreviewDialog(Me.LookAndFeel)
+        Catch ex As Exception
+            MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
+
+    Private Sub btnAnular_ItemClick(sender As Object, e As DevExpress.XtraBars.ItemClickEventArgs) Handles btnAnular.ItemClick
+        Try
+            If GridView1.RowCount < 0 Then
+                Exit Sub
+            End If
+
+            Dim item As ClasesSistemaContable.Egreso = CType(EgresoBindingSource.Current, ClasesSistemaContable.Egreso)
+
+
+            Dim frmAnulacion As frmAnulacionRegistro = New frmAnulacionRegistro
+            frmAnulacion.ShowDialog()
+
+            If frmAnulacion.isAnulado Then
+                item.Eliminado = True
+                item.MotivoEliminacion = frmAnulacion.txtMotivoAnulacon.EditValue
+                item.UsuarioEliminacion = "Prueba" ''frmAnulacion.txtUsuarioAnulacion.EditValue 
+                anulado = ClasesSistemaContable.SingletonDAO.EgresoDAO.saveEliminarEgreso(item)
+            End If
+
+            If anulado Then
+                MessageBox.Show("Registro Anulado", ClasesSistemaContable.Constantes.LeyendaSistema, MessageBoxButtons.OK, MessageBoxIcon.Exclamation)
+            End If
+
+        Catch ex As Exception
+            MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
+
+    Private Sub btnAutorizar_ItemClick(sender As Object, e As DevExpress.XtraBars.ItemClickEventArgs) Handles btnAutorizar.ItemClick
+        Try
+            If GridView1.RowCount < 0 Then
+                Exit Sub
+            End If
+
+            Dim item As ClasesSistemaContable.Egreso = CType(EgresoBindingSource.Current, ClasesSistemaContable.Egreso)
+
+            item.Verificado = True
+            item.UsuarioVerificado = "Prueba" ''frmAnulacion.txtUsuarioAnulacion.EditValue 
+            verificado = ClasesSistemaContable.SingletonDAO.EgresoDAO.saveVerificadoEgreso(item)
+
+
+            If verificado Then
+                MessageBox.Show("Registro Verificado", ClasesSistemaContable.Constantes.LeyendaSistema, MessageBoxButtons.OK, MessageBoxIcon.Information)
+            End If
+        Catch ex As Exception
+            MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
+
+End Class
