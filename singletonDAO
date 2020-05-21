@@ -1,0 +1,26 @@
+Public Class SingletonDAO
+
+    Private Sub New()
+
+    End Sub
+
+    Public Shared ReadOnly Property GetInstance As SingletonDAO
+        Get
+            Static Instance As SingletonDAO = New SingletonDAO
+            Return Instance
+        End Get
+    End Property
+
+
+    Private Shared _TipoIvaDAO As TipoIvaDAO
+
+    Public Shared ReadOnly Property TipoIvaDAO As TipoIvaDAO
+        Get
+            If _TipoIvaDAO Is Nothing Then
+                _TipoIvaDAO = New TipoIvaDAO
+            End If
+            Return _TipoIvaDAO
+        End Get
+    End Property
+    
+ End class
