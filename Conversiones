@@ -1,0 +1,261 @@
+Imports System.IO
+Imports System.Xml
+Imports System.Xml.Serialization
+Imports System.Data.OleDb
+Imports System.Text
+Imports ExcelDataReader
+Imports Newtonsoft.Json
+Imports DevExpress.XtraPrinting
+Imports DevExpress.XtraGrid
+
+Public Class Conversiones
+
+    Public Shared Function ImprimirGrid(GridControl As GridControl) As PrintableComponentLink
+        Dim resultado As PrintableComponentLink
+        Try
+            resultado = New PrintableComponentLink(New PrintingSystem()) With {.Component = GridControl}
+            resultado.PrintingSystem.SetCommandVisibility(PrintingSystemCommand.Save, CommandVisibility.None)
+            resultado.PrintingSystem.SetCommandVisibility(PrintingSystemCommand.Open, CommandVisibility.None)
+        Catch
+            Throw
+        End Try
+        Return resultado
+    End Function
+
+    Public Shared Function getDV(Ruc As String) As String
+        Dim resultado As String = String.Empty
+        Try
+            resultado = CalcularDV(Ruc, 11)
+        Catch
+            Throw
+        End Try
+        Return resultado
+    End Function
+
+    Public Shared Function CalcularDV(numero As String, basemax As Integer) As String
+        Dim resultado As String = String.Empty
+        Dim codigo As Long
+        Dim numero_al As String = String.Empty
+        Try
+            For i = 1 To Len(numero)
+                Dim aux
+                aux = Mid(numero, i, 1)
+                codigo = Asc(UCase(aux))
+                If Not (codigo >= 48 AndAlso codigo <= 57) Then
+                    numero_al = numero_al & codigo
+                Else
+                    numero_al = numero_al & aux
+                End If
+            Next
+
+            Dim k As Integer = 2 : Dim total As Integer = 0
+
+            For i = Len(numero_al) To 1 Step -1
+                If (k > basemax) Then k = 2
+                Dim numero_aux As Integer
+                numero_aux = Val(Mid(numero_al, i, 1))
+                total = total + (numero_aux * k)
+                k = k + 1
+            Next
+
+            Dim resto As Integer : Dim digito As Integer
+
+            resto = total Mod 11
+            If (resto > 1) Then
+                digito = 11 - resto
+            Else
+                digito = 0
+            End If
+            resultado = digito
+        Catch
+            Throw
+        End Try
+        Return resultado
+    End Function
+
+    Public Shared Function DataTableToJSONWithJSONNet(objeto As ClasesSistemaContable.Aranduka) As String
+        Dim JSONString As String = String.Empty
+        JSONString = JsonConvert.SerializeObject(objeto)
+        Return JSONString
+    End Function
+
+    Public Shared Function ConvertToDataTable(Of T)(list As IList(Of T)) As DataTable
+        Dim entityType As Type = GetType(T)
+        Dim table As New DataTable()
+        Dim properties As System.ComponentModel.PropertyDescriptorCollection = System.ComponentModel.TypeDescriptor.GetProperties(entityType)
+        Try
+            For Each prop As System.ComponentModel.PropertyDescriptor In properties
+                table.Columns.Add(prop.Name, If(Nullable.GetUnderlyingType(prop.PropertyType), prop.PropertyType))
+            Next
+            For Each item As T In list
+                Dim row As DataRow = table.NewRow()
+                For Each prop As System.ComponentModel.PropertyDescriptor In properties
+                    row(prop.Name) = If(prop.GetValue(item), DBNull.Value)
+                Next
+                table.Rows.Add(row)
+            Next
+        Catch
+            Throw
+        End Try
+        Return table
+    End Function
+
+    Public Shared Sub DataTableToCSV(table As DataTable, filePath As String, Optional ByVal iniciarCampoNumero As Integer = 999)
+        Try
+            Using writer As New System.IO.StreamWriter(filePath)
+                Dim lastColIndex As Integer = table.Columns.Count - 1
+                Dim cellvalue As String
+                Dim firstField, firstRow As Boolean
+                firstRow = True
+
+                ''Agrega la cabecera en el csv
+                Dim iColCount As Integer = table.Columns.Count
+                For i As Integer = 0 To iColCount - 1
+                    writer.Write(table.Columns(i))
+                    If i < iColCount - 1 Then
+                        writer.Write(";")
+                    End If
+                Next
+                writer.Write(writer.NewLine)
+
+                ''Agrega las filas a csv
+                For Each row As DataRow In table.Rows
+                    If Not firstRow Then writer.WriteLine()
+                    firstField = True
+                    For i = 0 To lastColIndex
+                        If Not firstField Then writer.Write(";")
+                        If Not row.IsNull(i) Then
+                            cellvalue = row.Item(i).ToString
+                            If i >= iniciarCampoNumero OrElse IsDate(cellvalue) Then
+                                writer.Write(cellvalue)
+                            Else
+                                writer.Write(ControlChars.Quote)
+                                writer.Write(ControlChars.Tab)
+                                writer.Write(cellvalue)
+                                writer.Write(ControlChars.Quote)
+                            End If
+                        End If
+                        firstField = False
+                    Next
+                    firstRow = False
+                Next
+            End Using
+        Catch
+            Throw
+        End Try
+    End Sub
+
+    Public Shared Function ConvertDoubleToInteger(table As DataTable) As DataTable
+        Dim retornarTable As DataTable
+        Try
+            retornarTable = table
+            Dim lastColIndex As Integer = retornarTable.Columns.Count - 1
+            For Each row As DataRow In retornarTable.Rows
+
+                For i = 0 To lastColIndex
+                    If Not row.IsNull(i) Then
+                        If row.Item(i).GetType Is GetType(Double) Then
+                            row.Item(i) = CType(row.Item(i), Integer)
+                        End If
+                    End If
+                Next
+
+            Next
+        Catch
+            Throw
+        End Try
+        Return retornarTable
+    End Function
+
+    Public Shared Function GenerateRandomString(Optional ByVal limite As Integer = 6)
+        If limite <= 0 Then Return ""
+        Dim resultado As String = ""
+        Try
+            Dim xCharArray() As Char = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray
+            Dim xNoArray() As Char = "0123456789".ToCharArray
+            Dim xGenerator As System.Random = New System.Random()
+            Dim xStr As String = String.Empty
+
+            While xStr.Length < limite
+
+                If xGenerator.Next(0, 2) = 0 Then
+                    xStr &= xCharArray(xGenerator.Next(0, xCharArray.Length))
+                Else
+                    xStr &= xNoArray(xGenerator.Next(0, xNoArray.Length))
+                End If
+
+            End While
+            resultado = xStr
+        Catch
+            Throw
+        End Try
+
+        Return resultado
+
+    End Function
+
+
+    Public Shared Function FechaSQL(ByVal Fecha As Date) As String
+        Dim Retorno As String
+        Retorno = Fecha.Year.ToString
+        If (Fecha.Month < 10) Then
+            Retorno += "0" + Fecha.Month.ToString
+        Else
+            Retorno += Fecha.Month.ToString()
+        End If
+        If (Fecha.Day < 10) Then
+            Retorno += "0" + Fecha.Day.ToString
+        Else
+            Retorno += Fecha.Day.ToString()
+        End If
+        Return Retorno
+    End Function
+
+    Public Shared Function FechaSQLConGuion(ByVal Fecha As Date) As String
+        Dim Retorno As String
+        Retorno = Fecha.Year.ToString
+        If (Fecha.Month < 10) Then
+            Retorno += "-0" + Fecha.Month.ToString
+        Else
+            Retorno += "-" + Fecha.Month.ToString()
+        End If
+        If (Fecha.Day < 10) Then
+            Retorno += "-0" + Fecha.Day.ToString
+        Else
+            Retorno += "-" + Fecha.Day.ToString()
+        End If
+        Return Retorno
+    End Function
+
+    Public Shared Function FechaFiltroInforme(ByVal Fecha As Date) As String
+        Dim Retorno As String
+        Retorno = Fecha.Year.ToString
+
+        If (Fecha.Month < 10) Then
+            Retorno += "-0" + Fecha.Month.ToString
+        Else
+            Retorno += "-" + Fecha.Month.ToString()
+        End If
+
+        If (Fecha.Day < 10) Then
+            Retorno += "-0" + Fecha.Day.ToString
+        Else
+            Retorno += "-" + Fecha.Day.ToString()
+        End If
+
+        Return Retorno
+    End Function
+
+    Public Shared Function getIngresoEgresoDato() As List(Of Dato)
+        Dim list As List(Of Dato) = New List(Of Dato)
+        Try
+            list.Add(New ClasesSistemaContable.Dato(ClasesSistemaContable.Definciones.IngresoEgreso.Ingreso, "Ingreso"))
+            list.Add(New ClasesSistemaContable.Dato(ClasesSistemaContable.Definciones.IngresoEgreso.Egreso, "Egreso"))
+        Catch
+            Throw
+        End Try
+        Return list
+    End Function
+
+
+End Class
