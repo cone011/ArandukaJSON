@@ -1,0 +1,29 @@
+If obj.idAsientoContable = 0 Then
+                id = com.ExecuteScalar()
+            Else
+                id = obj.idAsientoContable
+            End If
+
+            Using SqlTransaction As SqlTransaction = conn.BeginTransaction
+                Try
+
+                    For Each item As ClasesSistemaContable.AsientoContableDetalle In obj.AsientoContableList
+                        item.idAsientoContable = id
+                        If ClasesSistemaContable.SingletonDAO.AsientoContableDetalleDAO.Save(item) = False Then
+                            SqlTransaction.Rollback()
+                        End If
+                    Next
+
+                    For Each item As ClasesSistemaContable.AsientoContableDetalle In obj.AsientoContableForDeleteList
+                        If SingletonDAO.AsientoContableDetalleDAO.DeleteAsientoContableDetalle(item) = False Then
+                            SqlTransaction.Rollback()
+                        End If
+                    Next
+
+                    SqlTransaction.Commit()
+
+                Catch
+                    Throw
+                End Try
+
+            End Using
