@@ -1,0 +1,19 @@
+Private _frmGridLiquidacionSalario As frmGridLiquidacionSalario
+
+    Private Sub New()
+
+    End Sub
+
+    Public Shared ReadOnly Property GetInstance As SingletonFormularios
+        Get
+            Static Instance As SingletonFormularios = New SingletonFormularios
+            Return Instance
+        End Get
+    End Property
+
+    Public Function frmGridTipoFormularioSET() As frmGridTipoFormularioSET
+        If _frmGridTipoFormularioSET Is Nothing OrElse _frmGridTipoFormularioSET.IsDisposed Then
+            _frmGridTipoFormularioSET = New frmGridTipoFormularioSET
+        End If
+        Return _frmGridTipoFormularioSET
+    End Function
